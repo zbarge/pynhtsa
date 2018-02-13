@@ -12,12 +12,44 @@ class NhtsaApi:
         self.format = _format
 
     def get(self, service_name, params=None, **kwargs):
+        """
+        Calls method:requests.get after constructing the full API request URL
+        and injecting 'format' into params.
+
+        :param service_name: (str)
+            The service name to be added to NHTSA_BASE_URL
+            e.g. 'vehicles/DecodeVin/ABKXJ23235JAWF5212'
+
+        :param params: (dict, default None)
+            An optional dictionary of supported parameters for the get request.
+            'format' parameter is overwritten with NhtsaApi.format.
+
+        :param kwargs:
+            Optional parameters passed along to requests.get
+        :return:
+        """
         if params is None:
             params = dict()
 
         url = NHTSA_BASE_URL + service_name
         params['format'] = self.format
         return requests.get(url, params=params, **kwargs)
+
+    def post(self, service_name, **kwargs):
+        """
+        Calls method:requests.post after constructing the full API request URL
+        and injecting 'format' into the data.
+
+        :param service_name: (str)
+            The service name to be added to NHTSA_BASE_URL
+        :param kwargs:
+        :return:
+        """
+        url = NHTSA_BASE_URL + service_name
+        data = kwargs.get('data', dict())
+        data['format'] = self.format
+        kwargs['data'] = data
+        return requests.post(url, **kwargs)
 
     def decode_vin(self, vin, model_year=None):
         """
@@ -48,13 +80,22 @@ class NhtsaApi:
         return self.get('vehicles/DecodeVin/{}'.format(vin), params=p)
 
     def decode_vin_batch(self, list_of_lists_with_vin_and_year):
-        base = ''
-        for obj in list_of_lists_with_vin_and_year:
-            try:
-                base += ','.join(obj) + ';'
-            except ValueError:
-                base += obj + ';'
-        return self.get('vehicles/DecodeVINValuesBatch', data=base)
+        """
+        Decodes multiple VIN, year combinations in one request.
+
+        :param list_of_lists_with_vin_and_year: (list)
+            This should be a list containing lists containing (VIN, Model Year).
+            These will be concatenated into a string and posted to the API.
+        :return: (requests.Response)
+            Example Data:
+            {
+            'SearchCriteria':'',
+            'Results': [{}, {}, {}, {}]
+            }
+        """
+        vals = [('{},{}'.format(v, y) if y else v)
+                for v, y in list_of_lists_with_vin_and_year]
+        return self.post('vehicles/DecodeVINValuesBatch', data={'data': ';'.join(vals)})
 
     def decode_vin_extended(self, vin, model_year=None):
         """
