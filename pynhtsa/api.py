@@ -8,8 +8,9 @@ class NhtsaApi:
     """
     https://vpic.nhtsa.dot.gov/api/
     """
-    def __init__(self, _format='json'):
+    def __init__(self, _format='json', base_url=NHTSA_BASE_URL):
         self.format = _format
+        self.base_url = base_url
 
     def get(self, service_name, params=None, **kwargs):
         """
@@ -31,7 +32,7 @@ class NhtsaApi:
         if params is None:
             params = dict()
 
-        url = NHTSA_BASE_URL + service_name
+        url = self.base_url + service_name
         params['format'] = self.format
         return requests.get(url, params=params, **kwargs)
 
@@ -45,7 +46,7 @@ class NhtsaApi:
         :param kwargs:
         :return:
         """
-        url = NHTSA_BASE_URL + service_name
+        url = self.base_url + service_name
         data = kwargs.get('data', dict())
         data['format'] = self.format
         kwargs['data'] = data
